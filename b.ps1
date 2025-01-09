@@ -13,7 +13,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     $currentDirectory = Get-Location
 
     # Specify the path to your batch file
-    $batchFilePath = ".\a.bat"
+    $batchFilePath = ".\start.bat"
 
     # Command to start PowerShell as Administrator, set the location, and run the batch file
     Start-Process PowerShell -ArgumentList "-NoExit", "-Command Set-Location '$currentDirectory'; & '$batchFilePath'" -Verb RunAs
@@ -24,7 +24,8 @@ else
     $volumes = Get-Volume | Where-Object { $_.DriveLetter -and $_.DriveType -eq 'Fixed' }
 
     # Loop through each volume and check BitLocker status
-    foreach ($volume in $volumes) {
+    foreach ($volume in $volumes) 
+    {
         $mountPoint = $volume.DriveLetter + ":"
         try 
         {
@@ -37,9 +38,15 @@ else
 
                 # Retrieve the BitLocker recovery key
                 $recoveryKeys = $bitlockerStatus.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
+                $date = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+                $filename = "$date.rkey"
+                
                 foreach ($key in $recoveryKeys) 
                 {
                     Write-Host "  Recovery Key: $($key.RecoveryPassword)"
+                    
+                    # Lagre gjenopprettingsnøkkelen til filen
+                    $key.RecoveryPassword | Out-File -FilePath $filename -Append
                 }
             } 
             else 
@@ -52,7 +59,13 @@ else
             Write-Host "Failed to retrieve BitLocker status for $mountPoint. Error: $_"
         }
     } #ferdig å traversere volumer
-    
+    while($true) 
+    {
+        Start-Sleep -Seconds 5
+        $fooShell = New-Object -com "Wscript.shell"
+        $fooShell.sendkeys('+{F15}')
+    }
+
     Write-Host "Ferdig, knast en tast..."
     [Console]::ReadKey($true) | Out-Null
 }
